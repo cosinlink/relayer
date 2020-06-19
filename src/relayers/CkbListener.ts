@@ -45,13 +45,22 @@ export class CkbListener {
           await this.onNewBlock(block.header);
           await ckbCollection.append(block);
 
+          debug(
+              `---- block of ${block.transactions.length} txs in height: ${currentHeight}`
+          );
+
+          if (block.transactions.length > 1) {
+            debug(
+                JSON.stringify( block.transactions[1], null, 2)
+            )
+          }
           const crossTxs = block.transactions.filter(tx => {
             return (
               tx.outputs.length === 1 &&
               tx.outputs.find(output => {
                 return (
-                  output.type?.codeHash === targetOutput.type.codeHash &&
-                  output.type?.hashType === targetOutput.type.hashType &&
+                  // output.type?.codeHash === targetOutput.type.codeHash &&
+                  // output.type?.hashType === targetOutput.type.hashType &&
                   _.isEqual(output.lock, targetOutput.lock)
                 );
               })

@@ -8,16 +8,18 @@
     "privateKey": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeff",
     "output": {
       "lock": {
-        "codeHash": "0xd483925160e4232b2cb29f012e8380b7b612d71cf4e79991476b6bcf610735f6",
+        "codeHash": "0x4d037cce9d3dafe249fcc79e536f2dac55506891c50ec53c64cbb2c64fb82f7e",
         "hashType": "data",
-        "args": "0xb4b972b0429699cb4da8cc285142e608db1a7acb208ee4fbf16d57612438b1ea"
+        "args": "0xa9ad05d9445f40168cd805c060c3b08ef51e1a67860c6d5c47ed020eecf4ac59"
       },
       "type": {
-        "codeHash": "0x57dd0067814dab356e05c6def0d094bb79776711e68ffdfad2df6a7f877f7db6",
-        "hashType": "data"
+        "codeHash": "0xd483925160e4232b2cb29f012e8380b7b612d71cf4e79991476b6bcf610735f6",
+        "hashType": "data",
+        "args": "0x7b22747848617368223a22307837306332643533646635306430316130643764356635396464653037386333366265613035646466303438343330303465623432613732666163356366363438222c22696e646578223a22307833227d"
       }
     },
     "deployedTxHash": ""
   },
-  "maxGapPeriod": 10
+  "maxGapPeriod": 10,
+  "deployTxHash": "0x70c2d53df50d01a0d7d5f59dde078c36bea05ddf04843004eb42a72fac5cf648"
 }
