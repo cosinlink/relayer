@@ -1,13 +1,14 @@
 import {BlockSynchronizer, nexusTypes} from "hermit-purple-server";
 import {safeParseJSON} from "muta-sdk/build/main/utils/common";
 import {config} from "../config";
-import {mutaCollection, relayToCkbBuffer} from "../db";
-import {BurnEvent, client} from "../muta";
+import {CkbRelayMessage, mutaCollection, relayToCkbBuffer} from "../db";
+import {BurnEvent, client, MutaRawEvent} from "../muta";
 import {wait} from "../utils";
 import fetch from "node-fetch";
 import {ckb} from "../ckb";
 import {Muta, Client} from "muta-sdk"
 import {muta} from "hermit-purple-server/lib/muta";
+import {sendUnlockTx} from "../consumers/sendUnlockTransaction";
 
 
 const debug = require("debug")("relayer:muta-listener");
@@ -64,10 +65,18 @@ export class MutaListener {
                     }
 
                     const muta_receipt = await this.get_block_hook_receipt(currentHeight)
-                    // const muta_receipt = await this.get_block_hook_receipt(Number(3400))
+                    // current block has not been executed
                     if (!muta_receipt) {
                         await wait(1000);
                         continue;
+                    }
+
+                    const mutaEvents = muta_receipt.events
+                    if (mutaEvents.length > 0 ) {
+                        debug(
+                            `found ${mutaEvents.length} muta->ckb events in height: ${currentHeight} of muta`
+                        )
+                        await this.onSudtBurnToCkb(currentHeight, mutaEvents);
                     }
 
                     console.log(muta_receipt)
@@ -77,63 +86,42 @@ export class MutaListener {
                 }
             }
         })();
-
-        /*new BlockSynchronizer({
-          async onGenesis() {},
-          async getLocalBlockHeight() {
-            return self.getLocalHeight();
-          },
-          async getLocalBlockExecHeight() {
-            return self.getLocalHeight();
-          },
-          async onBlockPacked() {},
-          async onBlockExecuted(executed) {
-            const block = executed.getBlock();
-            debug(`height: ${block.height}`);
-            await mutaCollection.append(block.height);
-
-            const burnEvents = executed
-              .getEvents()
-              .reduce<BurnEvent[]>((result, event) => {
-                const data = safeParseJSON(event.data);
-                if (!data) return result;
-                if (data.kind === "cross_to_ckb" && data.topic === "burn_asset") {
-                  return result.concat(data);
-                }
-                return result;
-              }, []);
-
-            const message = await relayToCkbBuffer.readLastCommitted();
-            const lastCommitHeight = message?.height ?? 0;
-
-            if (
-              !burnEvents.length ||
-              block.height - lastCommitHeight < config.maxGapPeriod
-            ) {
-              return;
-            }
-
-
-            const witness = {
-              header: {
-                height: block.height,
-                validatorVersion: block.validatorVersion,
-                validators: executed.getValidators()
-              },
-              events: burnEvents,
-              // TODO
-              proof: ""
-            };
-
-            await relayToCkbBuffer.append({
-              height: block.height,
-              data: witness,
-              status: "proposed",
-              txHash: null
-            });
-
-            await wait(1);
-          }
-        }).run();*/
     }
+
+    private async onSudtBurnToCkb(currentHeight: number, events:any[]) {
+        const burnEvents = events.map<BurnEvent>((event) => {
+             const data = JSON.parse(event.data)
+             return {
+                 asset_id: data.id,
+                 ckb_receiver: data.receiver,
+                 amount: data.amount,
+             } as BurnEvent
+        })
+
+        const witnesses = [ {
+            header: {
+                height: currentHeight,
+            },
+            events: burnEvents,
+            proof: "",
+        } as CkbRelayMessage ]
+        const txHash = await sendUnlockTx(witnesses)
+        await MutaListener.waitForTx(txHash)
+    }
+
+    private static async waitForTx(txHash: string) {
+        while (true) {
+            const tx = await ckb.rpc.getTransaction(txHash);
+            try {
+                console.log(`tx ${txHash} status: ${tx.txStatus.status}`);
+                if (tx.txStatus.status === "committed") {
+                    return;
+                }
+            } catch (e) {
+                console.log({ e, tx, txHash });
+            }
+            await wait(1000);
+        }
+    }
+
 }

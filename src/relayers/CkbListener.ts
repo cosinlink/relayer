@@ -2,7 +2,7 @@ import _ from "lodash";
 import { ckb } from "../ckb";
 import { config } from "../config";
 import { ckbCollection, relayToMutaBuffer } from "../db";
-import { CkbMessage, crossCKBService, CkbTx } from "../muta";
+import {CkbMessage, crossCKBService, CkbTx, BatchMintSudt, MintSudt} from "../muta";
 import { toCKBRPCType } from "../parse";
 import { wait } from "../utils";
 import {utils} from "muta-sdk"
@@ -97,7 +97,7 @@ export class CkbListener {
     // await crossCKBService.update_headers({ headers });
     // await relayToMutaBuffer.flushHeaders();
 
-    const payload = {
+    const ckbMessage = {
       number: currentHeight,
       txs: crossTxs.map<CkbTx>(tx => ({
         cell_deps: toCKBRPCType(
@@ -121,7 +121,7 @@ export class CkbListener {
       }
     };
 
-    const receipt = await crossCKBService.submit_message(payload);
+    const receipt = await crossCKBService.submit_message(ckbMessage);
 
     debug(`relay to muta successful`);
     debug(receipt);

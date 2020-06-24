@@ -4,37 +4,9 @@ import _ from "lodash";
 import { ckb } from "../ckb";
 import { CkbRelayMessage } from "../db";
 
-const config = {
-  deployTxHash:
-    "0x2275e53dfc72834f23144509dc115c156d230c7d5da2212d6bc559a980aa278e",
-  createCrosschainCellTxHash:
-    "0x3b0e622dcb12579eb0eee4660c6cf0f1f7317b2c66f23e45471c2311ff1b2096",
-  issueTxHash:
-    "0x51e89612442d538bd37ec6e15ec94b268ad24a18c54c98f2dd8475370754229d",
-  crosschainLockscript: {
-    codeHash:
-      "0xd483925160e4232b2cb29f012e8380b7b612d71cf4e79991476b6bcf610735f6",
-    hashType: "data",
-    args: "0x211ac347e7b1d02f4c160828c00c119d1848d5219e3367a568f3985eac3199ef"
-  },
-  udtScript: {
-    codeHash:
-      "0x57dd0067814dab356e05c6def0d094bb79776711e68ffdfad2df6a7f877f7db6",
-    hashType: "data",
-    args: "0x32e555f3ff8e135cece1351a6a2971518392c1e30375c1e006ad0ce8eac07947"
-  },
-  crosschainTypescript: {
-    codeHash:
-      "0xd483925160e4232b2cb29f012e8380b7b612d71cf4e79991476b6bcf610735f6",
-    hashType: "data",
-    args:
-      "0x7b22747848617368223a22307832323735653533646663373238333466323331343435303964633131356331353664323330633764356461323231326436626335353961393830616132373865222c22696e646578223a22307833227d"
-  },
-  lockToCrosschainTxHash:
-    "0xab9696bcdee61845fa2c3a74d71edff3adf89b1086c119ac5c1bee441a49257e",
-  unlockTxHash:
-    "0xba1399b9207f6e50cfcc0ea23472257ec003f9abeea34898637fbe4e0f9d4fc7"
-};
+import {config as rawConfig} from "../config"
+
+const config = rawConfig.ckb.output
 
 const fee_rate = BigInt(100000);
 // TODO replace with real hash
@@ -106,17 +78,13 @@ export async function sendUnlockTx(witness: CkbRelayMessage[]) {
   console.log({ balance, assetBalanceSum });
 
   const crosschainLockCells = await ckb.loadCells({
-    lockHash: ckb.utils.scriptToHash({
-      codeHash: config.crosschainLockscript.codeHash,
-      args: config.crosschainLockscript.args,
-      hashType: "data"
-    })
+    lockHash: ckb.utils.scriptToHash(config.lock)
   });
   // console.log(JSON.stringify(crosschainLockCells, null, 2));
 
   const crosschainCell = _.find(
     crosschainLockCells,
-    c => c?.type?.codeHash === config.crosschainTypescript.codeHash
+    c => c?.type?.codeHash === config.type.codeHash
   );
   // console.log(crosschainCell);
 
@@ -189,7 +157,7 @@ export async function sendUnlockTx(witness: CkbRelayMessage[]) {
     backToCrosschainBalance
   )) {
     outputs.push({
-      lock: config.crosschainLockscript,
+      lock: config.lock,
       type: {
         hashType: "data",
         codeHash: utils.bytesToHex(simpleUdtHash),

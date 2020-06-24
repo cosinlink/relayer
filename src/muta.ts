@@ -84,14 +84,30 @@ interface BurnPayload {
   amount: u64; // amount of asset to cross-back to ckb
 }
 
+export interface MutaRawEvent {
+  data: string,
+  topic: string,
+  service: string
+}
+
+export interface MintSudt {
+  id:       Hash,
+  receiver: Address,
+  amount:   bigint,
+}
+
+export interface BatchMintSudt {
+  batch: Vec<MintSudt>
+}
+
 export interface BurnEvent {
   asset_id: Hash;
   muta_sender: Address;
   ckb_receiver: string;
   amount: u64;
-  nonce: u64;
-  kind: string; // "cross_to_ckb"
-  topic: string; // "burn_asset"
+  // nonce: u64;
+  // kind: string; // "cross_to_ckb"
+  topic: string; // "BurnSudtEvent"
 }
 
 interface CrossCKBServiceModel {

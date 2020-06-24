@@ -37,7 +37,7 @@ class MutaCollection {
   collection = db.get("muta");
 
   async getLatestHeight(): Promise<number> {
-    return this.collection.get("height", -1).value();
+    return this.collection.get("height", 0).value();
   }
 
   async append(height: number) {
