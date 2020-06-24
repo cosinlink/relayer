@@ -2,9 +2,11 @@ import _ from "lodash";
 import { ckb } from "../ckb";
 import { config } from "../config";
 import { ckbCollection, relayToMutaBuffer } from "../db";
-import { CkbMessage, crossCKBService } from "../muta";
+import { CkbMessage, crossCKBService, CkbTx } from "../muta";
 import { toCKBRPCType } from "../parse";
 import { wait } from "../utils";
+import {utils} from "muta-sdk"
+
 
 const debug = require("debug")("relayer:ckb-listener");
 
@@ -71,10 +73,10 @@ export class CkbListener {
             `found ${crossTxs.length} cross txs of ${block.transactions.length} txs in height: ${currentHeight}`
           );
 
-          if (!crossTxs.length) continue;
+          // if (!crossTxs.length) continue;
           await this.onSUDTLockedToCrossCell(currentHeight, crossTxs);
 
-          await wait(1000);
+          await wait(5000);
         } catch (e) {
           console.error(e);
         }
@@ -92,29 +94,34 @@ export class CkbListener {
   ) {
     let headers = await relayToMutaBuffer.readAllHeaders();
     debug(`start relay to muta`);
-    await crossCKBService.update_headers({ headers });
-    await relayToMutaBuffer.flushHeaders();
-    const receipt = await crossCKBService.submit_messages({
-      height: currentHeight,
-      messages: crossTxs.map<CkbMessage>(tx => ({
-        // TODO impl the proof
-        proof: [],
-        tx: {
-          cell_deps: toCKBRPCType(
+    // await crossCKBService.update_headers({ headers });
+    // await relayToMutaBuffer.flushHeaders();
+
+    const payload = {
+      number: currentHeight,
+      txs: crossTxs.map<CkbTx>(tx => ({
+        cell_deps: toCKBRPCType(
             tx.cellDeps.map(dep => ({
               outPoint: dep.outPoint,
               depType: dep.depType.toLowerCase()
             }))
-          ),
-          header_deps: tx.headerDeps,
-          inputs: toCKBRPCType(tx.inputs),
-          outputs: toCKBRPCType(tx.outputs),
-          outputs_data: toCKBRPCType(tx.outputsData),
-          version: tx.version,
-          witnesses: tx.witnesses
-        }
-      }))
-    });
+        ),
+        header_deps: tx.headerDeps,
+
+        inputs: toCKBRPCType(tx.inputs),
+        outputs: toCKBRPCType(tx.outputs),
+        outputs_data: toCKBRPCType(tx.outputsData),
+        version: tx.version,
+        witnesses: tx.witnesses
+      })),
+      proof: {
+        indices: [],
+        lemmas: [],
+        witnesses_root: "",
+      }
+    };
+
+    const receipt = await crossCKBService.submit_message(payload);
 
     debug(`relay to muta successful`);
     debug(receipt);

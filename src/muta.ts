@@ -1,6 +1,6 @@
 import { createBindingClass, Muta, Write, write } from "muta-sdk";
 import RPC  from "@nervosnetwork/ckb-sdk-rpc";
-import { Hash, u64, Vec } from "muta-sdk/build/main/types/scalar";
+import { Hash, u64, Vec, u32 } from "muta-sdk/build/main/types/scalar";
 import { config } from "./config";
 
 const muta = new Muta({
@@ -37,8 +37,15 @@ export interface CkbHeader {
 }
 
 export interface MessagePayload {
-  height: u64; // ckb block height
-  messages: Vec<CkbMessage>;
+  number: u64; // ckb block height
+  txs: Vec<CkbTx>;
+  proof: MsgProof;
+}
+
+export interface MsgProof {
+  indices:        Vec<u32>,
+  lemmas:         Vec<Hash>,
+  witnesses_root: Hash,
 }
 
 export interface CkbMessage {
@@ -49,7 +56,7 @@ export interface CkbMessage {
 type JsonBytes = string;
 
 // 这个就是一笔 ckb 交易的结构
-interface CkbTx {
+export interface CkbTx {
   version: Version;
   cell_deps: Vec<RPC.CellDep>;
   header_deps: Vec<H256>;
@@ -89,17 +96,17 @@ export interface BurnEvent {
 
 interface CrossCKBServiceModel {
   update_headers: Write<UpdateHeadersPayload, "">;
-  submit_messages: Write<MessagePayload, "">;
+  submit_message: Write<MessagePayload, "">;
   burn_sudt: Write<BurnPayload, "">;
 }
 
-export const CrossCKBService = createBindingClass<CrossCKBServiceModel>(
-  "crosschain",
+export const CKBHandlerService = createBindingClass<CrossCKBServiceModel>(
+  "ckb_handler",
   {
     update_headers: write(),
-    submit_messages: write(),
+    submit_message: write(),
     burn_sudt: write()
   }
 );
 
-export const crossCKBService = new CrossCKBService(client, account);
+export const crossCKBService = new CKBHandlerService(client, account);
